@@ -6,6 +6,9 @@ const Vector2 = rl.Vector2;
 const WIDTH = 640;
 const HEIGHT = 480;
 const SCORE_BUFFER_SIZE = 32;
+const INITIAL_BALL_SPEED = 5.0;
+const INITIAL_PLAYER_SPEED = 5.0;
+const SPEED_INCREMENT = 0.5;
 
 const Player = struct {
     pos_y: i32,
@@ -13,14 +16,16 @@ const Player = struct {
     width: i32 = 20,
     height: i32 = 70,
     score: i32 = 0,
+    speed: f32,
 };
 
 const Ball = struct {
     radius: f32 = 10.0,
     x: f32,
     y: f32,
-    bx: f32,
-    by: f32,
+    speed: f32,
+    dx: f32,
+    dy: f32,
 };
 
 fn toString(value: i32, buffer: []u8) ![:0]const u8 {
@@ -50,18 +55,21 @@ pub fn main() !void {
     var player1 = Player{
         .pos_x = 20,
         .pos_y = 100,
+        .speed = INITIAL_PLAYER_SPEED,
     };
 
     var cpu = Player{
         .pos_x = WIDTH - 35,
         .pos_y = 100,
+        .speed = INITIAL_PLAYER_SPEED,
     };
 
     var ball = Ball{
         .x = @as(f32, WIDTH / 2) - 10.0,
         .y = 120.0,
-        .bx = -5.0,
-        .by = -5.0,
+        .speed = INITIAL_BALL_SPEED,
+        .dx = -1.0,
+        .dy = -1.0,
     };
 
     while (!rl.windowShouldClose()) {
@@ -69,37 +77,43 @@ pub fn main() !void {
         if (checkCollision(player1.pos_x, ball.x, player1.pos_y, ball.y, player1.width, player1.height, ball.radius) or
             checkCollision(cpu.pos_x, ball.x, cpu.pos_y, ball.y, cpu.width, cpu.height, ball.radius))
         {
-            ball.bx = -1.0 * ball.bx;
+            ball.dx *= -1.0;
         }
 
-        cpu.pos_y = @intFromFloat(ball.y);
+        cpu.pos_y = @min(HEIGHT - cpu.height, @max(0, @as(i32, @intFromFloat(ball.y)) - @divExact(cpu.height, 2)));
 
-        ball.x += ball.bx;
-        ball.y += ball.by;
+        ball.x += ball.dx * ball.speed;
+        ball.y += ball.dy * ball.speed;
 
         if (ball.x < 5.0) {
             cpu.score += 1;
             ball.x = @as(f32, WIDTH / 2) - ball.radius;
             ball.y = 120.0;
-            ball.bx = -5.0;
+            ball.dx = -1.0;
+            ball.speed += SPEED_INCREMENT;
+            player1.speed += SPEED_INCREMENT;
+            cpu.speed += SPEED_INCREMENT;
         } else if (ball.x > @as(f32, WIDTH - 5)) {
             player1.score += 1;
             ball.x = @as(f32, WIDTH / 2) - ball.radius;
             ball.y = 120.0;
-            ball.bx = 5.0;
+            ball.dx = 1.0;
+            ball.speed += SPEED_INCREMENT;
+            player1.speed += SPEED_INCREMENT;
+            cpu.speed += SPEED_INCREMENT;
         }
 
         if (ball.y < 5.0) {
-            ball.by = -1.0 * ball.by;
+            ball.dy *= -1.0;
         } else if (ball.y > @as(f32, HEIGHT - 5)) {
-            ball.by = -ball.by;
+            ball.dy *= -1.0;
         }
 
-        // Player movement with proper boundary checking
+        // Player movement with variable speed
         if (rl.isKeyDown(rl.KeyboardKey.w) or rl.isKeyDown(rl.KeyboardKey.up)) {
-            player1.pos_y = @max(0, player1.pos_y - 5);
+            player1.pos_y = @max(0, player1.pos_y - @as(i32, @intFromFloat(player1.speed)));
         } else if (rl.isKeyDown(rl.KeyboardKey.s) or rl.isKeyDown(rl.KeyboardKey.down)) {
-            player1.pos_y = @min(HEIGHT - player1.height, player1.pos_y + 5);
+            player1.pos_y = @min(HEIGHT - player1.height, player1.pos_y + @as(i32, @intFromFloat(player1.speed)));
         }
 
         // Draw
