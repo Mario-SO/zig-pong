@@ -5,6 +5,7 @@ const Vector2 = rl.Vector2;
 
 const WIDTH = 640;
 const HEIGHT = 480;
+const SCORE_BUFFER_SIZE = 32;
 
 const State = struct {
     ballPos: Vector2,
@@ -31,16 +32,15 @@ pub fn toString(value: i32, buffer: []u8) ![:0]const u8 {
 }
 
 // fn checkCollision(x1: i32, x2: f32, y1: i32, y2: f32, w1: i32, h1: i32, r: f32) bool {}
+
 pub fn main() anyerror!void {
     // Initialization
-    //--------------------------------------------------------------------------------------
-
-    var buffer: []u8 = undefined;
-
     rl.initWindow(WIDTH, HEIGHT, "zig-pong");
-    defer rl.closeWindow(); // Close window and OpenGL context
+    defer rl.closeWindow();
 
-    rl.setTargetFPS(60); // Set our game to run at 60 frames-per-second
+    rl.setTargetFPS(60);
+
+    var buffer: [SCORE_BUFFER_SIZE]u8 = undefined;
 
     const player1 = Player{
         .pos_x = 20,
@@ -59,30 +59,29 @@ pub fn main() anyerror!void {
     //     .by = -5,
     // };
 
-    //--------------------------------------------------------------------------------------
-
-    // Main game loop
-    while (!rl.windowShouldClose()) { // Detect window close button or ESC key
+    while (!rl.windowShouldClose()) {
         // Update
         //----------------------------------------------------------------------------------
         // TODO: Update your variables here
         //----------------------------------------------------------------------------------
 
         // Draw
-        //----------------------------------------------------------------------------------
         rl.beginDrawing();
         defer rl.endDrawing();
 
         rl.clearBackground(rl.Color.black);
-        rl.drawText("PONG", @divExact(WIDTH - rl.measureText("PONG", 20), 2), 20, 20, rl.Color.white);
+        // rl.drawText("PONG", @divExact(WIDTH - rl.measureText("PONG", 20), 2), 20, 20, rl.Color.white);
 
         // PLAYERS
         rl.drawRectangle(player1.pos_x, player1.pos_y, player1.width, player1.height, rl.Color.white);
         rl.drawRectangle(cpu.pos_x, cpu.pos_y, cpu.width, cpu.height, rl.Color.white);
 
+        rl.drawLine(WIDTH / 2, 0, WIDTH / 2, HEIGHT, rl.Color.white);
+
         // SCORES
-        rl.drawText(try toString(player1.score, buffer), (WIDTH / 2) - 200, 30, 48, rl.Color.white);
-        rl.drawText(try toString(cpu.score, buffer), (WIDTH / 2) + 200, 30, 48, rl.Color.black);
-        //----------------------------------------------------------------------------------
+        const score1 = try toString(player1.score, &buffer);
+        const score2 = try toString(cpu.score, &buffer);
+        rl.drawText(score1.ptr, (WIDTH / 2) - 200, 30, 48, rl.Color.white);
+        rl.drawText(score2.ptr, (WIDTH / 2) + 200, 30, 48, rl.Color.white);
     }
 }
