@@ -10,6 +10,43 @@ const INITIAL_BALL_SPEED = 5.0;
 const INITIAL_PLAYER_SPEED = 5.0;
 const SPEED_INCREMENT = 0.5;
 
+// Glow shader
+const fragmentShaderCode =
+    \\#version 330
+    \\
+    \\in vec2 fragTexCoord;
+    \\in vec4 fragColor;
+    \\
+    \\uniform sampler2D texture0;
+    \\uniform vec4 colDiffuse;
+    \\
+    \\out vec4 finalColor;
+    \\
+    \\const float samples = 5.0;
+    \\const float quality = 2.5;
+    \\
+    \\void main()
+    \\{
+    \\    vec2 size = textureSize(texture0, 0);
+    \\    vec4 sum = vec4(0);
+    \\    vec2 sizeFactor = vec2(1)/size*quality;
+    \\
+    \\    vec4 source = texture(texture0, fragTexCoord);
+    \\
+    \\    const int range = 2;
+    \\
+    \\    for (int x = -range; x <= range; x++)
+    \\    {
+    \\        for (int y = -range; y <= range; y++)
+    \\        {
+    \\            sum += texture(texture0, fragTexCoord + vec2(x, y)*sizeFactor);
+    \\        }
+    \\    }
+    \\
+    \\    finalColor = ((sum/(samples*samples)) + source)*colDiffuse;
+    \\}
+;
+
 const Player = struct {
     pos_y: i32,
     pos_x: i32,
@@ -49,6 +86,14 @@ pub fn main() !void {
     defer rl.closeWindow();
 
     rl.setTargetFPS(60);
+
+    // Initialize render texture for shader drawing
+    const target = rl.loadRenderTexture(WIDTH, HEIGHT);
+    defer rl.unloadRenderTexture(target);
+
+    // Load and initialize shader
+    const shader = rl.loadShaderFromMemory(null, fragmentShaderCode);
+    defer rl.unloadShader(shader);
 
     var buffer: [SCORE_BUFFER_SIZE]u8 = undefined;
 
@@ -116,10 +161,8 @@ pub fn main() !void {
             player1.pos_y = @min(HEIGHT - player1.height, player1.pos_y + @as(i32, @intFromFloat(player1.speed)));
         }
 
-        // Draw
-        rl.beginDrawing();
-        defer rl.endDrawing();
-
+        // Draw game to render texture
+        rl.beginTextureMode(target);
         rl.clearBackground(rl.Color.black);
 
         // BALL
@@ -136,5 +179,16 @@ pub fn main() !void {
         const score2 = try toString(cpu.score, &buffer);
         rl.drawText(score1.ptr, (WIDTH / 2) - 200, 30, 48, rl.Color.white);
         rl.drawText(score2.ptr, (WIDTH / 2) + 200, 30, 48, rl.Color.white);
+        rl.endTextureMode();
+
+        // Draw render texture with shader
+        rl.beginDrawing();
+        rl.clearBackground(rl.Color.black);
+
+        // Draw render texture using shader
+        rl.beginShaderMode(shader);
+        rl.drawTextureRec(target.texture, .{ .x = 0, .y = 0, .width = @as(f32, @floatFromInt(target.texture.width)), .height = -@as(f32, @floatFromInt(target.texture.height)) }, .{ .x = 0, .y = 0 }, rl.Color.white);
+        rl.endShaderMode();
+        rl.endDrawing();
     }
 }
