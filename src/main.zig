@@ -95,7 +95,8 @@ pub fn main() !void {
     const shader = rl.loadShaderFromMemory(null, fragmentShaderCode);
     defer rl.unloadShader(shader);
 
-    var buffer: [SCORE_BUFFER_SIZE]u8 = undefined;
+    var cpu_buffer: [SCORE_BUFFER_SIZE]u8 = undefined;
+    var player_buffer: [SCORE_BUFFER_SIZE]u8 = undefined;
 
     var player1 = Player{
         .pos_x = 20,
@@ -125,7 +126,7 @@ pub fn main() !void {
             ball.dx *= -1.0;
         }
 
-        cpu.pos_y = @min(HEIGHT - cpu.height, @max(0, @as(i32, @intFromFloat(ball.y)) - @divExact(cpu.height, 2)));
+        cpu.pos_y = @min(HEIGHT - cpu.height, @max(0, @as(i32, @intFromFloat(ball.y)) - @divExact(cpu.height, 2))) - 5;
 
         ball.x += ball.dx * ball.speed;
         ball.y += ball.dy * ball.speed;
@@ -175,8 +176,8 @@ pub fn main() !void {
         rl.drawLine(WIDTH / 2, 0, WIDTH / 2, HEIGHT, rl.Color.white);
 
         // SCORES
-        const score1 = try toString(player1.score, &buffer);
-        const score2 = try toString(cpu.score, &buffer);
+        const score1 = try toString(player1.score, &player_buffer);
+        const score2 = try toString(cpu.score, &cpu_buffer);
         rl.drawText(score1.ptr, (WIDTH / 2) - 200, 30, 48, rl.Color.white);
         rl.drawText(score2.ptr, (WIDTH / 2) + 200, 30, 48, rl.Color.white);
         rl.endTextureMode();
