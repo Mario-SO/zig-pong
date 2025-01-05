@@ -7,10 +7,6 @@ const WIDTH = 640;
 const HEIGHT = 480;
 const SCORE_BUFFER_SIZE = 32;
 
-const State = struct {
-    ballPos: Vector2,
-};
-
 const Player = struct {
     pos_y: i32,
     pos_x: i32,
@@ -20,20 +16,29 @@ const Player = struct {
 };
 
 const Ball = struct {
-    radius: f32 = 10,
-    x: i32,
-    y: i32,
+    radius: f32 = 10.0,
+    x: f32,
+    y: f32,
     bx: f32,
     by: f32,
 };
 
-pub fn toString(value: i32, buffer: []u8) ![:0]const u8 {
+fn toString(value: i32, buffer: []u8) ![:0]const u8 {
     return std.fmt.bufPrintZ(buffer, "{d}", .{value});
 }
 
-// fn checkCollision(x1: i32, x2: f32, y1: i32, y2: f32, w1: i32, h1: i32, r: f32) bool {}
+fn checkCollision(x1: i32, x2: f32, y1: i32, y2: f32, w1: i32, h1: i32, r: f32) bool {
+    if (@as(f32, @floatFromInt(x1)) <= x2 + r and
+        @as(f32, @floatFromInt(y1)) <= y2 + r and
+        x2 <= @as(f32, @floatFromInt(x1 + w1)) and
+        y2 <= @as(f32, @floatFromInt(y1 + h1)))
+    {
+        return true;
+    }
+    return false;
+}
 
-pub fn main() anyerror!void {
+pub fn main() !void {
     // Initialization
     rl.initWindow(WIDTH, HEIGHT, "zig-pong");
     defer rl.closeWindow();
@@ -42,35 +47,69 @@ pub fn main() anyerror!void {
 
     var buffer: [SCORE_BUFFER_SIZE]u8 = undefined;
 
-    const player1 = Player{
+    var player1 = Player{
         .pos_x = 20,
         .pos_y = 100,
     };
 
-    const cpu = Player{
+    var cpu = Player{
         .pos_x = WIDTH - 35,
         .pos_y = 100,
     };
 
-    // const ball = Ball{
-    //     .x = (WIDTH / 2) - .radius,
-    //     .y = 120,
-    //     .bx = -5,
-    //     .by = -5,
-    // };
+    var ball = Ball{
+        .x = @as(f32, WIDTH / 2) - 10.0,
+        .y = 120.0,
+        .bx = -5.0,
+        .by = -5.0,
+    };
 
     while (!rl.windowShouldClose()) {
-        // Update
-        //----------------------------------------------------------------------------------
-        // TODO: Update your variables here
-        //----------------------------------------------------------------------------------
+        // Update variables
+        if (checkCollision(player1.pos_x, ball.x, player1.pos_y, ball.y, player1.width, player1.height, ball.radius) or
+            checkCollision(cpu.pos_x, ball.x, cpu.pos_y, ball.y, cpu.width, cpu.height, ball.radius))
+        {
+            ball.bx = -1.0 * ball.bx;
+        }
+
+        cpu.pos_y = @intFromFloat(ball.y);
+
+        ball.x += ball.bx;
+        ball.y += ball.by;
+
+        if (ball.x < 5.0) {
+            cpu.score += 1;
+            ball.x = @as(f32, WIDTH / 2) - ball.radius;
+            ball.y = 120.0;
+            ball.bx = -5.0;
+        } else if (ball.x > @as(f32, WIDTH - 5)) {
+            player1.score += 1;
+            ball.x = @as(f32, WIDTH / 2) - ball.radius;
+            ball.y = 120.0;
+            ball.bx = 5.0;
+        }
+
+        if (ball.y < 5.0) {
+            ball.by = -1.0 * ball.by;
+        } else if (ball.y > @as(f32, HEIGHT - 5)) {
+            ball.by = -ball.by;
+        }
+
+        // Player movement with proper boundary checking
+        if (rl.isKeyDown(rl.KeyboardKey.w) or rl.isKeyDown(rl.KeyboardKey.up)) {
+            player1.pos_y = @max(0, player1.pos_y - 5);
+        } else if (rl.isKeyDown(rl.KeyboardKey.s) or rl.isKeyDown(rl.KeyboardKey.down)) {
+            player1.pos_y = @min(HEIGHT - player1.height, player1.pos_y + 5);
+        }
 
         // Draw
         rl.beginDrawing();
         defer rl.endDrawing();
 
         rl.clearBackground(rl.Color.black);
-        // rl.drawText("PONG", @divExact(WIDTH - rl.measureText("PONG", 20), 2), 20, 20, rl.Color.white);
+
+        // BALL
+        rl.drawCircle(@intFromFloat(ball.x), @intFromFloat(ball.y), ball.radius, rl.Color.white);
 
         // PLAYERS
         rl.drawRectangle(player1.pos_x, player1.pos_y, player1.width, player1.height, rl.Color.white);
