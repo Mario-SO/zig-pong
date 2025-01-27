@@ -32,7 +32,8 @@ zig build run
 - Smooth ball physics
 - Dynamic paddle movement
 
-![Game Preview](./assets/preview-vid.mp4)
+https://github.com/user-attachments/assets/8d09cfeb-f419-471f-854b-2b17c291cc42
+
 
 ## 🔧 Technical Details
 
