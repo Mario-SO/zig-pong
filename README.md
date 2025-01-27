@@ -32,6 +32,8 @@ zig build run
 - Smooth ball physics
 - Dynamic paddle movement
 
+![Game Preview](./assets/preview-vid.mp4)
+
 ## 🔧 Technical Details
 
 - Built with Zig programming language
